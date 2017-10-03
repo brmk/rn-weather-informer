@@ -1,5 +1,8 @@
 # Weather Informer
 
+![Screeenshot](/screenshots/screenshot_1.PNG?raw=true "Optional Title")
+![Screeenshot](/screenshots/screenshot_2.PNG?raw=true "Optional Title")
+
 
 ### Stack
 - React Native (0.48.4)
