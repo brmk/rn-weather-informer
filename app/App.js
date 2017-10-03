@@ -7,7 +7,9 @@ import WeatherView from './components/WeatherView';
 // import PushNotification from 'react-native-push-notification';
 import DeviceInfo from 'react-native-device-info';
 import DatePicker from 'react-native-datepicker';
-// DeviceInfo.getUniqueID()
+import Meteor from 'react-native-meteor';
+
+
 // one signal app id Your App ID: 0a6bc7e3-ee18-44a0-8365-7e5ebdab18d9
 
 
@@ -26,6 +28,8 @@ import DatePicker from 'react-native-datepicker';
 //   PushNotification.localNotification(data);
 //   BackgroundTask.finish();
 // });
+// 
+Meteor.connect('ws://192.168.88.49:3000/websocket');//do this only once 
 
 export default class MyApp extends React.Component {
   constructor(props) {
@@ -52,6 +56,7 @@ export default class MyApp extends React.Component {
   async componentDidMount() {
     // await getWeather();
     await this.readStorage();
+    await this.upsertUser();
     // Optional: Check if the device is blocking background tasks or not
     // this.checkStatus()
   }
@@ -86,18 +91,45 @@ export default class MyApp extends React.Component {
   }
 
   async readStorage(){
-    let weather = await Weather.getStoredWeather(),
-        {date} = weather;
+    let weather = await Weather.getStoredWeather();
+    let date = weather&&weather.date?weather.date:null;
 
     let schedule = await AsyncStorage.getItem('@MyApp:schedule');
+
+    if(!schedule){
+      schedule = '09:00';
+    }
 
     const loading = false;
     this.setState({weather,date,schedule,loading});
   }
 
+  async upsertUser(){
+    let deviceId = DeviceInfo.getUniqueID();
+    let location =  await Weather.getLocation();
+
+    Meteor.call('users.upsert', {deviceId, location}, function(error,result){
+      if(error){
+        console.log(error);
+      } else{
+        console.log('Success users.upsert: ', result, {deviceId,location});
+      }
+    });
+  }
+
   onSelectDate(date){
-    this.setState({schedule:date});
-    AsyncStorage.setItem('@MyApp:schedule', date);
+    const dateObject = moment(date, 'HH:mm').toDate();
+    const deviceId = DeviceInfo.getUniqueID();
+    Meteor.call('users.setSchedule', {deviceId, date:dateObject}, (error,result)=>{
+      if(error){
+        console.log(error);
+        Alert.alert(error.reason);
+      } else{
+        this.setState({schedule:date});
+        AsyncStorage.setItem('@MyApp:schedule', date);
+        console.log('Success setSchedule: ', result, date);
+      }
+    });
   }
   
   render() {
@@ -113,15 +145,19 @@ export default class MyApp extends React.Component {
           title="Get weather"
           onPress={this.getAndPersistWeather.bind(this)}
         />
-        <DatePicker
-          style={{width: 200}}
-          date={this.state.schedule}
-          mode="time"
-          format="hh:mm"
-          confirmBtnText="Confirm"
-          cancelBtnText="Cancel"
-          onDateChange={this.onSelectDate.bind(this)}
-        />
+
+        <View style={{'alignItems':'center'}}>
+          <Text style={{fontSize:20, marginBottom:10}}>Schedule notifications:</Text>
+          <DatePicker
+            style={{width: 200}}
+            date={this.state.schedule}
+            mode="time"
+            format="HH:mm"
+            confirmBtnText="Confirm"
+            cancelBtnText="Cancel"
+            onDateChange={this.onSelectDate.bind(this)}
+          />
+        </View>
         {
           weather ? 
             <View>
