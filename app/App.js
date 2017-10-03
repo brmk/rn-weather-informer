@@ -1,5 +1,5 @@
 import React from 'react'
-import { Alert, View, ScrollView, Button, Text, AsyncStorage,Dimensions } from 'react-native'
+import { Alert, View, ScrollView, Button, Text, AsyncStorage,Dimensions, Image } from 'react-native'
 // import BackgroundTask from 'react-native-background-task'
 import moment from 'moment';
 import Weather from './modules/Weather';
@@ -61,6 +61,7 @@ class App extends React.Component {
     // await getWeather();
     await this.readStorage();
     // await this.upsertUser();
+    await this.getRecommendation();
     this.setState({currentWeather:await Weather.getCurrentWeather()});
     // Optional: Check if the device is blocking background tasks or not
     // this.checkStatus()
@@ -122,6 +123,22 @@ class App extends React.Component {
     });
   }
 
+  async getRecommendation(){
+    let location =  await Weather.getLocation();
+    location = {
+      latitude : 1.290098,
+      longitude : 103.864746 
+    }
+    Meteor.call('getRecommendation', {location}, (error, result)=>{
+      if(error){
+        console.log(error);
+      } else{
+        console.log('getRecommendation: ', result, {location});
+        this.setState({recommendation:result});
+      }
+    })
+  }
+
   onSelectDate(date){
     const dateObject = moment(date, 'HH:mm').toDate();
     const deviceId = DeviceInfo.getUniqueID();
@@ -138,9 +155,10 @@ class App extends React.Component {
   }
   
   render() {
-    const {weather,date} = this.state;
+    const { date, currentWeather, recommendation } = this.state;
     const { status } = this.props;
 
+    console.log(this.state)
     const debug = false;
 
     return (
@@ -151,18 +169,37 @@ class App extends React.Component {
           :null
         }
         {
-          debug? (
+          // debug? (
+          //   <View>
+          //     <Button
+          //       title="Read storage"
+          //       onPress={this.readStorage.bind(this)}
+          //     />
+          //     <Button
+          //       title="Get weather"
+          //       onPress={this.getAndPersistWeather.bind(this)}
+          //     />
+          //   </View>
+          // ) : null
+        }
+        {
+          currentWeather ? 
             <View>
-              <Button
-                title="Read storage"
-                onPress={this.readStorage.bind(this)}
-              />
-              <Button
-                title="Get weather"
-                onPress={this.getAndPersistWeather.bind(this)}
-              />
+              {
+                currentWeather.weather.map((weather,i)=>{
+                  return (
+                    <View key={i}>
+                      <Image
+                        style={{width: 50, height: 50}}
+                        source={{uri: `https://openweathermap.org/img/w/${weather.icon}.png`}}
+                      />
+                      <Text>{`${weather.main}`}</Text>
+                    </View>
+                  )
+                })
+              }
             </View>
-          ) : null
+          :null
         }
         <View>
           <Text style={{fontSize:20, marginBottom:10}}>Schedule notifications:</Text>
@@ -177,21 +214,14 @@ class App extends React.Component {
             onDateChange={this.onSelectDate.bind(this)}
           />
         </View>
+        {
+          recommendation ? 
+            <Text>
+              {recommendation}
+            </Text>
+          :null
+        }
       </View>
-          
-          // {
-            /*weather&&debug ? 
-              <View>
-                <Text>{weather.city?`Your location is: ${weather.city.name} (${weather.city.country})`:null}</Text>
-                <Text>{`Last fetch: ${moment(date).format('YYYY-MM-DD HH:mm:ss')}`}</Text>
-                {
-                  weather.list.map((weather, i)=>{
-                    return <WeatherView key={i} weather={weather}/>
-                  })
-                }
-              </View>
-           :null*/ 
-          // }
     )
   }
 }
