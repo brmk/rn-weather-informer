@@ -7,7 +7,8 @@ import WeatherView from './components/WeatherView';
 // import PushNotification from 'react-native-push-notification';
 import DeviceInfo from 'react-native-device-info';
 import DatePicker from 'react-native-datepicker';
-import Meteor from 'react-native-meteor';
+import Meteor, { createContainer } from 'react-native-meteor';
+// import OneSignal from "react-native-onesignal";
 
 
 // one signal app id Your App ID: 0a6bc7e3-ee18-44a0-8365-7e5ebdab18d9
@@ -31,12 +32,13 @@ import Meteor from 'react-native-meteor';
 // 
 Meteor.connect('ws://192.168.88.49:3000/websocket');//do this only once 
 
-export default class MyApp extends React.Component {
+class App extends React.Component {
   constructor(props) {
     super(props);
   
     this.state = {
-      loading: true
+      loading: true,
+      oneSignalUserId : null
     };
   }
 
@@ -134,44 +136,63 @@ export default class MyApp extends React.Component {
   
   render() {
     const {weather,date} = this.state;
+    const { status } = this.props;
+
+    const debug = false;
 
     return (
-      <ScrollView style={{marginTop: 40}}>
-        <Button
-          title="Read storage"
-          onPress={this.readStorage.bind(this)}
-        />
-        <Button
-          title="Get weather"
-          onPress={this.getAndPersistWeather.bind(this)}
-        />
-
-        <View style={{'alignItems':'center'}}>
-          <Text style={{fontSize:20, marginBottom:10}}>Schedule notifications:</Text>
-          <DatePicker
-            style={{width: 200}}
-            date={this.state.schedule}
-            mode="time"
-            format="HH:mm"
-            confirmBtnText="Confirm"
-            cancelBtnText="Cancel"
-            onDateChange={this.onSelectDate.bind(this)}
-          />
-        </View>
+      <View style={{marginTop: 40, flex:1, 'alignItems':'center',  'justifyContent':'center'}}>
         {
-          weather ? 
+          debug? (
             <View>
-              <Text>{weather.city?`Your location is: ${weather.city.name} (${weather.city.country})`:null}</Text>
-              <Text>{`Last fetch: ${moment(date).format('YYYY-MM-DD HH:mm:ss')}`}</Text>
-              {
-                weather.list.map((weather, i)=>{
-                  return <WeatherView key={i} weather={weather}/>
-                })
-              }
+              <Button
+                title="Read storage"
+                onPress={this.readStorage.bind(this)}
+              />
+              <Button
+                title="Get weather"
+                onPress={this.getAndPersistWeather.bind(this)}
+              />
             </View>
-         :null 
+          ) : null
         }
-      </ScrollView>
+        { !status.connected ? 
+            <Text>Oops. It looks like you are not online. Please connect to the internet</Text>
+          :
+            <View>
+              <Text style={{fontSize:20, marginBottom:10}}>Schedule notifications:</Text>
+              <DatePicker
+                style={{width: 200}}
+                date={this.state.schedule}
+                mode="time"
+                format="HH:mm"
+                confirmBtnText="Confirm"
+                cancelBtnText="Cancel"
+                onDateChange={this.onSelectDate.bind(this)}
+              />
+            </View>
+        }
+      </View>
+          
+          // {
+            /*weather&&debug ? 
+              <View>
+                <Text>{weather.city?`Your location is: ${weather.city.name} (${weather.city.country})`:null}</Text>
+                <Text>{`Last fetch: ${moment(date).format('YYYY-MM-DD HH:mm:ss')}`}</Text>
+                {
+                  weather.list.map((weather, i)=>{
+                    return <WeatherView key={i} weather={weather}/>
+                  })
+                }
+              </View>
+           :null*/ 
+          // }
     )
   }
 }
+
+export default createContainer(() => {
+  return {
+    status: Meteor.status(),
+  };
+}, App);
