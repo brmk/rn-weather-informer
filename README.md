@@ -1,7 +1,10 @@
 # Weather Informer
 
-![Screeenshot](/screenshots/screenshot_1.PNG?raw=true "Optional Title")
-![Screeenshot](/screenshots/screenshot_2.PNG?raw=true "Optional Title")
+<div align="center">
+  <img src="/screenshots/screenshot_1.PNG" width="300"/>
+  <img height="0" width="8px"/>
+  <img src="/screenshots/screenshot_2.PNG" width="300"/>
+</div>
 
 
 ### Stack
