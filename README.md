@@ -1,7 +1,8 @@
-# rn-weather-informer
+# Weather Informer
+
 
 ### Stack
-- React Native
+- React Native (0.48.4)
 - Meteor backend https://github.com/YuraSrohiy/weather-informer-backend
 
 ### Prerequisites
