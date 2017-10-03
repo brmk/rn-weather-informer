@@ -30,6 +30,9 @@ import OneSignal from "react-native-onesignal";
 //   BackgroundTask.finish();
 // });
 // 
+
+const bg = require('./images/bg.jpg');
+
 Meteor.connect('ws://weather-informer-backend.herokuapp.com/websocket');//do this only once 
 
 const {height, width} = Dimensions.get('window');
@@ -40,7 +43,7 @@ class App extends React.Component {
   
     this.state = {
       loading: true,
-      oneSignalUserId : null
+      oneSignalId : null
     };
   }
 
@@ -77,12 +80,8 @@ class App extends React.Component {
 
   onIds(device) {
     if(device && device.userId){
-      this.setState({oneSignalUserId: device.userId});
+      this.setState({oneSignalId: device.userId});
       console.log('Device info: ', device);
-      let deviceId = DeviceInfo.getUniqueID();
-      Meteor.call('notifications.registerUserDevice', {deviceId, oneSignalUserId:device.userId}, (error,result)=>{
-        console.log(error,result);
-      });
     }
   }
 
@@ -102,7 +101,7 @@ class App extends React.Component {
   async componentDidMount() {
     // await getWeather();
     await this.readStorage();
-    // await this.upsertUser();
+    await this.upsertUser();
     await this.getRecommendation();
     this.setState({currentWeather:await Weather.getCurrentWeather()});
     // Optional: Check if the device is blocking background tasks or not
@@ -195,16 +194,45 @@ class App extends React.Component {
       }
     });
   }
+
+  componentWillUpdate(nextProps, nextState) {
+    let deviceId = DeviceInfo.getUniqueID();
+    const { status } = nextProps;
+    const { oneSignalId, registeredDeviceForPushNotifications } = nextState;
+
+    if(status.connected && !registeredDeviceForPushNotifications){
+      Meteor.call('notifications.registerUserDevice', {deviceId, oneSignalId}, (error,result)=>{
+        this.setState({registeredDeviceForPushNotifications:true});
+      });
+    }
+  }
   
   render() {
     const { date, currentWeather, recommendation } = this.state;
     const { status } = this.props;
 
-    console.log(this.state)
-    const debug = false;
+    const debug = false;  
+    console.log(currentWeather)
 
     return (
-      <View style={{marginTop: 0, flex:1, 'alignItems':'center', 'justifyContent':'center'}}>
+      <View style={{flex:1}}>
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+          }}
+        >
+          <Image
+            style={{
+              flex: 1,
+              resizeMode:'cover',
+            }}
+            source={bg}
+          />
+        </View>
         { !status.connected ? 
           <Text style={{position:'absolute', top:0, left:0, width, backgroundColor:'#2276a7', color:'#fff', padding:10, paddingTop:30}}>Oops. It looks like you are not online. Please connect to the internet</Text>
 
@@ -224,45 +252,49 @@ class App extends React.Component {
           //   </View>
           // ) : null
         }
-        {
-          currentWeather ? 
-            <View>
-              {
-                currentWeather.weather.map((weather,i)=>{
-                  return (
-                    <View key={i}>
-                      <Image
-                        style={{width: 50, height: 50}}
-                        source={{uri: `https://openweathermap.org/img/w/${weather.icon}.png`}}
-                      />
-                      <Text>{`${weather.main}`}</Text>
-                    </View>
-                  )
-                })
-              }
-            </View>
-          :null
-        }
-        <View>
-          <Text style={{fontSize:20, marginBottom:10}}>Schedule notifications:</Text>
-          <DatePicker
-            disabled={!status.connected}
-            style={{width: 200}}
-            date={this.state.schedule}
-            mode="time"
-            format="HH:mm"
-            confirmBtnText="Confirm"
-            cancelBtnText="Cancel"
-            onDateChange={this.onSelectDate.bind(this)}
-          />
+
+        <View style={{paddingHorizontal:20, paddingTop: 70, 'alignItems':'center'}}> 
+          <View>
+            <Text style={{fontSize:20, marginBottom:10, backgroundColor:'transparent'}}>Notifications schedule:</Text>
+            <DatePicker
+              disabled={!status.connected}
+              style={{width: 200}}
+              date={this.state.schedule}
+              mode="time"
+              format="HH:mm"
+              confirmBtnText="Confirm"
+              cancelBtnText="Cancel"
+              onDateChange={this.onSelectDate.bind(this)}
+            />
+          </View>
+          {
+            currentWeather ? 
+              <View style={{marginVertical:60}}>
+                {
+                  currentWeather.weather.map((weather,i)=>{
+                    return (
+                      <View key={i} style={{alignItems:'center'}}>
+                        <Image
+                          style={{width: 60, height: 60}}
+                          source={{uri: `https://openweathermap.org/img/w/${weather.icon}.png`}}
+                        />
+                        <Text style={{backgroundColor:'transparent', textAlign:'center'}}>{`${weather.main}`}</Text>
+                        <Text style={{backgroundColor:'transparent', textAlign:'center', fontSize: 50}}>{`${currentWeather.main.temp}`} °C</Text>
+                      </View>
+                    )
+                  })
+                }
+              </View>
+            :null
+          }
+          {
+            recommendation ? 
+              <Text style={{backgroundColor:'transparent', textAlign:'center', fontSize:18}}>
+                {recommendation}
+              </Text>
+            :null
+          }
         </View>
-        {
-          recommendation ? 
-            <Text>
-              {recommendation}
-            </Text>
-          :null
-        }
       </View>
     )
   }
