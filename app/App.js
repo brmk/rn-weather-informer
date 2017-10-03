@@ -1,5 +1,5 @@
 import React from 'react'
-import { Alert, View, ScrollView, Button, Text, AsyncStorage } from 'react-native'
+import { Alert, View, ScrollView, Button, Text, AsyncStorage,Dimensions } from 'react-native'
 // import BackgroundTask from 'react-native-background-task'
 import moment from 'moment';
 import Weather from './modules/Weather';
@@ -32,6 +32,8 @@ import Meteor, { createContainer } from 'react-native-meteor';
 // 
 Meteor.connect('ws://192.168.88.49:3000/websocket');//do this only once 
 
+const {height, width} = Dimensions.get('window');
+
 class App extends React.Component {
   constructor(props) {
     super(props);
@@ -58,7 +60,8 @@ class App extends React.Component {
   async componentDidMount() {
     // await getWeather();
     await this.readStorage();
-    await this.upsertUser();
+    // await this.upsertUser();
+    this.setState({currentWeather:await Weather.getCurrentWeather()});
     // Optional: Check if the device is blocking background tasks or not
     // this.checkStatus()
   }
@@ -141,7 +144,12 @@ class App extends React.Component {
     const debug = false;
 
     return (
-      <View style={{marginTop: 40, flex:1, 'alignItems':'center',  'justifyContent':'center'}}>
+      <View style={{marginTop: 0, flex:1, 'alignItems':'center', 'justifyContent':'center'}}>
+        { !status.connected ? 
+          <Text style={{position:'absolute', top:0, left:0, width, backgroundColor:'#2276a7', color:'#fff', padding:10, paddingTop:30}}>Oops. It looks like you are not online. Please connect to the internet</Text>
+
+          :null
+        }
         {
           debug? (
             <View>
@@ -156,22 +164,19 @@ class App extends React.Component {
             </View>
           ) : null
         }
-        { !status.connected ? 
-            <Text>Oops. It looks like you are not online. Please connect to the internet</Text>
-          :
-            <View>
-              <Text style={{fontSize:20, marginBottom:10}}>Schedule notifications:</Text>
-              <DatePicker
-                style={{width: 200}}
-                date={this.state.schedule}
-                mode="time"
-                format="HH:mm"
-                confirmBtnText="Confirm"
-                cancelBtnText="Cancel"
-                onDateChange={this.onSelectDate.bind(this)}
-              />
-            </View>
-        }
+        <View>
+          <Text style={{fontSize:20, marginBottom:10}}>Schedule notifications:</Text>
+          <DatePicker
+            disabled={!status.connected}
+            style={{width: 200}}
+            date={this.state.schedule}
+            mode="time"
+            format="HH:mm"
+            confirmBtnText="Confirm"
+            cancelBtnText="Cancel"
+            onDateChange={this.onSelectDate.bind(this)}
+          />
+        </View>
       </View>
           
           // {
