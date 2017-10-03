@@ -8,7 +8,7 @@ import WeatherView from './components/WeatherView';
 import DeviceInfo from 'react-native-device-info';
 import DatePicker from 'react-native-datepicker';
 import Meteor, { createContainer } from 'react-native-meteor';
-// import OneSignal from "react-native-onesignal";
+import OneSignal from "react-native-onesignal";
 
 
 // one signal app id Your App ID: 0a6bc7e3-ee18-44a0-8365-7e5ebdab18d9
@@ -30,7 +30,7 @@ import Meteor, { createContainer } from 'react-native-meteor';
 //   BackgroundTask.finish();
 // });
 // 
-Meteor.connect('ws://192.168.88.49:3000/websocket');//do this only once 
+Meteor.connect('ws://weather-informer-backend.herokuapp.com/websocket');//do this only once 
 
 const {height, width} = Dimensions.get('window');
 
@@ -42,6 +42,48 @@ class App extends React.Component {
       loading: true,
       oneSignalUserId : null
     };
+  }
+
+  componentWillMount() {
+      OneSignal.inFocusDisplaying(2);
+
+      OneSignal.addEventListener('received', this.onReceived);
+      OneSignal.addEventListener('opened', this.onOpened);
+      OneSignal.addEventListener('registered', this.onRegistered);
+      OneSignal.addEventListener('ids', this.onIds.bind(this));
+  }
+
+  componentWillUnmount() {
+      OneSignal.removeEventListener('received', this.onReceived);
+      OneSignal.removeEventListener('opened', this.onOpened);
+      OneSignal.removeEventListener('registered', this.onRegistered);
+      OneSignal.removeEventListener('ids', this.onIds.bind(this));
+  }
+
+  onReceived(notification) {
+      console.log("Notification received: ", notification);
+  }
+
+  onOpened(openResult) {
+    console.log('Message: ', openResult.notification.payload.body);
+    console.log('Data: ', openResult.notification.payload.additionalData);
+    console.log('isActive: ', openResult.notification.isAppInFocus);
+    console.log('openResult: ', openResult);
+  }
+
+  onRegistered(notifData) {
+      console.log("Device had been registered for push notifications!", notifData);
+  }
+
+  onIds(device) {
+    if(device && device.userId){
+      this.setState({oneSignalUserId: device.userId});
+      console.log('Device info: ', device);
+      let deviceId = DeviceInfo.getUniqueID();
+      Meteor.call('notifications.registerUserDevice', {deviceId, oneSignalUserId:device.userId}, (error,result)=>{
+        console.log(error,result);
+      });
+    }
   }
 
   // async notify(){
